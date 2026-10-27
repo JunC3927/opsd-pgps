@@ -59,7 +59,8 @@ def prepare_model(source, target, root):
 
 def prepare(settings):
     import yaml
-    from .data import prepare_data
+    from .data import FORMAT, prepare_data
+    from .official_data import prepare_official
     root = repo_root()
     verify_framework(root)
     source = Path(settings["paths"]["model"])
@@ -74,7 +75,11 @@ def prepare(settings):
         if settings["experiment"]["recipe"] == "original":
             suffix = ""
         (exp / "prompt_suffix.txt").write_text(suffix)
-        data = prepare_data(Path(settings["paths"]["data"]), exp / "data", suffix)
+        data_root = Path(settings["paths"]["data"])
+        manifest = data_root / 'manifest.json'
+        bundle_info = read(manifest) if manifest.is_file() else {}
+        legacy_bundle = isinstance(bundle_info, dict) and bundle_info.get('format') == FORMAT
+        data = (prepare_data if legacy_bundle else prepare_official)(data_root, exp / 'data', suffix)
         model = prepare_model(source, exp / "model", root)
         audit = exp / "audit"
         audit.mkdir(exist_ok=True)
@@ -101,7 +106,8 @@ def prepare(settings):
             model=str(exp / "model"), source_model=str(source),
             train_parquet=str(exp / "data/train.parquet"), smoke_parquet=str(exp / "data/smoke.parquet"),
             gpus=settings["experiment"]["gpus"], python=sys.executable, wandb=wb,
-            recipe=settings["experiment"]["recipe"], repo_root=str(root))
+            recipe=settings["experiment"]["recipe"], repo_root=str(root), source_data=str(data_root),
+            data_mode=data.get('data_mode', 'historical_bundle'))
         put(exp / "runtime.json", runtime)
         put(exp / "PREPARED.json", {"passed": True, "time": time.time(), "training_started": False,
             "gpu_work_started": False, "framework_files_checked": 482,

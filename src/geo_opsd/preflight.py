@@ -49,7 +49,13 @@ def prompt_audit(value):
     assert sum(bool(row['extra_info']['sampler_padding']) for row in rows) == 1
     source = read(e / 'DATA_PREPARED.json')
     assert source['passed'] and source['rows'] == 8022 and source['unique_questions'] == 8021
-    assert source['smoke_rows'] == 18 and source['only_teacher_suffix_changed']
+    assert source['smoke_rows'] == 18
+    if source.get('data_mode') == 'official':
+        from .official_data import verify_sources
+        assert source['original_prompt_and_parsing_verified']
+        verify_sources(source)
+    else:
+        assert source['only_teacher_suffix_changed']
     processor = AutoProcessor.from_pretrained(value['model'], trust_remote_code=True)
     pre = read(Path(value['model']) / 'preprocessor_config.json')
     assert pre['min_pixels'] == 1024 and pre['max_pixels'] == 262144

@@ -4,6 +4,16 @@ These commands are manual. Preparing the repository or finding free GPUs never s
 
 The destination may have eight H100s, but this recipe deliberately uses **six GPUs**. The remaining two cards may be used for independent evaluation. Changing to eight training ranks is a different experiment and is rejected by this implementation.
 
+## Default one-command entry
+
+Set `paths.data` to the official download root containing `Diagram_Visual` and `PGPS9K/train.json` (or flat `train.json`), then run:
+
+```bash
+python scripts/run.py --config configs/local.yaml
+```
+
+This explicitly starts CPU preparation, two smoke updates, export/inference checks, and then formal training. Use `--prepare-only` for CPU checks without GPU work. No manual Parquet export or image conversion is needed. Images remain in the download directory; a small automatic trainer cache is written under the experiment. The historical model processor settings remain; using official raw images instead of historical clight_images is recorded as a data-input change. Optional historical bundles remain supported.
+
 ## Preserved recipe
 
 The complete resolved configuration is compared against the archived original six-rank experiment, with only relocated paths, logging, checkpoint frequency and retention allowed to differ. The model is the original Qwen3-VL-8B-Instruct. Both student and frozen teacher start from that base; the teacher additionally sees the original geometry relations and, for the `hidden_guidance` recipe, the selected teacher constraint.
@@ -28,7 +38,7 @@ The original framework and loss implementation are used directly. There is no fo
 
 ## Local configuration and prepared layout
 
-Follow the main README to install the pinned environment, download the base model on the destination, transfer the separate data package, and prepare a uniquely named experiment using `configs/local.yaml`.
+Follow the main README to install the pinned environment, download the base model on the destination, extract the official PGPS9K download, and prepare a uniquely named experiment using `configs/local.yaml`.
 
 Relative `paths.model`, `paths.data`, and `paths.output` are resolved relative to that YAML file. Do not put credentials in YAML or in Git. W&B defaults to offline logging; to use online logging, log in on the destination and set `wandb.mode: online` with your own project/entity.
 
@@ -40,7 +50,7 @@ Preparation creates:
   config.yaml                             Training override
   audit/original_resolved_config.yaml      Full original configuration
   audit/framework_alignment.json          Frozen framework file hashes
-  data/train.parquet                      8022 rows with relocated image paths
+  data/train.parquet                      8022 auto-generated rows with official image paths
   data/smoke.parquet                      First 18 rows, in the same order
   model/                                 Original weights plus original training metadata overlay
   prompt_suffix.txt                       Constraint, or empty for the original control
@@ -110,4 +120,4 @@ No command kills an unrelated GPU process. If an inference child fails to releas
 PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -p 'test_training_safety.py' -v
 ```
 
-These seven standard-library tests require no model, GPU or API. They check the preserved recipe guard, refusal of scientific parameter changes and eight-rank substitution, runtime identity, complete six-rank checkpoints, GPU occupancy checks and restoration of original inference metadata. A passing local suite is not a substitute for destination CPU preflight and the real six-GPU smoke.
+These standard-library tests require no model, GPU or API. They check the preserved recipe guard, refusal of scientific parameter changes and eight-rank substitution, runtime identity, complete six-rank checkpoints, GPU occupancy checks and restoration of original inference metadata. A passing local suite is not a substitute for destination CPU preflight and the real six-GPU smoke.

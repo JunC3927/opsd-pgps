@@ -2,7 +2,7 @@
 
 将已核对的 **Qwen3-VL-8B-Instruct、原六卡 Vision-OPD/verl 实现**迁移到独立 Linux 服务器。提供两个配方：原教师提示词 `original`，以及只给教师追加最终约束的 `hidden_guidance`。
 
-代码、数据、环境、模型、实验产物各自独立。GitHub 仓库不包含数据集图片、模型权重、Python 环境、历史作答、实验日志或密钥。
+直接读取从官方解压的PGPS9K目录（`train.json`＋`Diagram_Visual`）。无需旧训练图包、图片转换或手动生成Parquet；填写模型、数据和输出路径后，一条命令完成检查与训练。GitHub仓库不包含数据或模型。
 
 ## 固定的实验设置
 
@@ -10,7 +10,7 @@
 |---|---|
 | 模型 | 原始 Qwen3-VL-8B-Instruct；学生与冻结教师相同大小 |
 | 训练数据 | PGPS9K 8021题、8022行；保留旧行序与原补齐行 |
-| 学生输入 | 实际训练图片＋原题，无选项、解析或答案 |
+| 学生输入 | 官方Diagram_Visual原图＋原题，无选项、解析或答案 |
 | 教师输入 | 同图同题＋原始结构/语义解析；约束仅追加在教师侧 |
 | 卡数 / batch / rollout | **6卡 / 12 / 1** |
 | 输出上限 / 学习率 | 4096 tokens / 1e-6 |
@@ -61,51 +61,56 @@ conda activate /your/local-disk/envs/geometry-opsd
 
 要恢复旧的全部依赖版本限制，可显式加 `--profile historical`。默认模式也会记录实际版本及历史差异；仍需通过H100真实训练验证，不能视为完整环境逐字节复现。完整说明见 [环境说明](docs/ENVIRONMENT.md)。
 
-### 3. 放置模型和独立数据包
+### 3. 下载模型和官方PGPS9K
 
-- 在新服务器下载官方 `Qwen/Qwen3-VL-8B-Instruct`，或者传输自己已核验的原始权重；不要用训后权重初始化。
-- 把私下传输的 `pgps-opsd-data-v1` 数据包放在目标磁盘上。仓库的 `scripts/export_data.py` 可从旧服务器导出此包，见 [数据迁移](docs/DATA_MIGRATION.md)。
-- 模型、数据和环境优先放目标机器的本地NVMe盘，实验输出可放目标存储。这里不绑定源服务器路径。
+- 下载官方 `Qwen/Qwen3-VL-8B-Instruct` 到新服务器。
+- 下载并解压官方PGPS9K，直接使用其中的 `Diagram_Visual`。**不需要旧服务器的数据包、clight_images或train.parquet。**
 
-使用已安装的Hugging Face客户端下载模型的示例：
+支持这两种常见布局；`paths.data`指向下面的PGPS目录：
 
-```bash
-hf download Qwen/Qwen3-VL-8B-Instruct --local-dir /your/local-disk/models/Qwen3-VL-8B-Instruct
+```text
+PGPS9K/                         # 或：PGPS9K/
+  Diagram_Visual/*.png         #       Diagram_Visual/*.png
+  PGPS9K/train.json            #       train.json
+  PGPS9K/test.json             #       test.json
 ```
 
-也可以用其他下载环境中的ModelScope；不必为下载工具修改锁定的训练依赖。
+也支持将`paths.data`指向内层存放train.json的PGPS9K目录。`test.json`存在时用于检查训练/测试题号不重叠；测试题不会作为训练样本。缺少`Diagram_Visual`会报错，不会静默替换为`Diagram`。
 
-### 4. 配置与CPU准备
+### 4. 填写路径和GPU编号
 
 ```bash
 cp configs/local.example.yaml configs/local.yaml
-# 编辑 paths.model、paths.data、paths.output、experiment.name 和六张GPU编号
-python scripts/prepare.py --config configs/local.yaml
-python scripts/preflight.py --config configs/local.yaml
 ```
 
-`configs/local.yaml` 被Git忽略。W&B默认 `offline`；若要在线记录，先在目标服务器执行 `wandb login`，再设置 `wandb.mode: online` 和自己的 `entity`。不要把密钥写入配置或仓库。
+编辑`configs/local.yaml`中的三个路径：
 
-模型准备会使用固定的 tokenizers 0.22.2 将官方下载文件恢复为旧训练保存的 tokenizer 格式，并逐字节核对旧 SHA；原始模型不改写。
+```yaml
+paths:
+  model: /your/disk/models/Qwen3-VL-8B-Instruct
+  data: /your/disk/datasets/PGPS9K
+  output: /your/disk/experiments
+```
 
-数据准备会核对原parquet、全部训练图片SHA、原题/原解析、学生输入、行序、补齐及测试集隔离。旧实验的训练图与 `Diagram_Visual` 不完全相同，不能自行替换。生成的parquet仅重写图片路径，并按配方追加教师约束。
+同时确认`experiment.name`是新实验名，`experiment.gpus`为六张允许使用的卡。`hidden_guidance`给教师追加最终约束，`original`用于无约束对照。W&B默认offline；在线记录需先`wandb login`再设置自己的entity及online模式。
 
-### 5. 两步验证，然后正式训练
+### 5. 一条命令运行
 
 ```bash
-# 六张卡必须空闲；先完成12+6条样本的两次真实更新
-python scripts/launch.py --config configs/local.yaml --mode smoke
-
-# 六rank检查点CPU合并，再在一张空闲卡做单题真实生成；不调用裁判
-python scripts/smoke_check.py --config configs/local.yaml --gpu 6
-
-# 仅验证全部通过才允许正式669步；从原始base重新初始化
-python scripts/launch.py --config configs/local.yaml --mode train
+python scripts/run.py --config configs/local.yaml
 ```
 
-命令在前台运行；长时间任务可放在自己开启的 `tmux` 会话中。准备代码或检测到空卡均不会自动启动训练。失败后先检查日志；入口拒绝覆盖旧运行，不提供未经验证的自动续训。
+这条命令**会启动GPU训练**：自动读取官方JSON与原图，检查数据/配置，完成六卡两步试跑、模型导出和单题真实生成，全部通过后从原始base开始正式669步训练。试跑和正式训练使用相同六张卡；单题生成默认复用试跑结束后释放的第一张卡，不要求额外空卡。可在`tmux`中运行。
 
-详细过程、日志位置和检查项见 [训练说明](docs/TRAINING.md)。
+如果只想先检查数据与配置：
+
+```bash
+python scripts/run.py --config configs/local.yaml --prepare-only
+```
+
+图片原地读取，不复制、不离线缩放、不另存RGB图片。现有verl训练器需要的两个小型Parquet缓存由程序自动生成在实验输出目录；它们只保存提示词、图片路径等字段，无需手动准备或迁移。原图在读取时转RGB，再由模型processor按既定设置处理。相比历史clight_images，这是一项已明确记录的图像输入变化。
+
+已有成功阶段会核对后复用；中止/失败训练不会被自动重跑或覆盖。原有分步prepare/preflight/smoke/train入口仍保留，详见[训练说明](docs/TRAINING.md)。
 
 ### 6. 训练完成后导出与评测
 

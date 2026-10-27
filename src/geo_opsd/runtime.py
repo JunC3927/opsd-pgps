@@ -62,6 +62,8 @@ def prepared(config):
     assert all(isinstance(g, int) and not isinstance(g, bool) and g >= 0 for g in gpus)
     if 'recipe' in value:
         assert value['recipe'] == settings['experiment'].get('recipe', 'hidden_guidance'), 'Teacher recipe changed after prepare'
+    if 'source_data' in value:
+        assert Path(value['source_data']).resolve() == Path(settings['paths']['data']).resolve(), 'Dataset root changed after prepare'
     if 'wandb' in settings:
         for key in ('project', 'entity', 'mode'):
             assert value.get('wandb', {}).get(key) == settings['wandb'].get(key), 'W&B settings changed after prepare'
@@ -84,6 +86,15 @@ def fingerprint(value):
         files += sorted(p for p in folder.rglob('*') if p.suffix in ('.py', '.yaml', '.yml'))
     files += sorted(p for p in (e / 'model').iterdir() if p.suffix in ('.json', '.jinja', '.txt', '.model', '.tiktoken'))
     entries = [str(path.absolute()) + ':' + sha(path) for path in files]
+    data = read(e / 'DATA_PREPARED.json')
+    if data.get('data_mode') == 'official':
+        for key in ('source_train', 'source_test'):
+            if data.get(key):
+                assert sha(data[key]) == data[key + '_sha256'], 'Official source JSON changed after prepare'
+        # Full hashes are checked during CPU preflight; metadata detects later normal edits.
+        for record in data['images'].values():
+            stat = Path(record['path']).stat()
+            assert (stat.st_size, stat.st_mtime_ns) == (record['bytes'], record['mtime_ns']), 'Official image changed after prepare'
     for path in sorted((e / 'model').glob('*.safetensors')):
         assert path.is_symlink(), 'Training overlay must link the original base weights'
         assert path.resolve() == (Path(value['source_model']) / path.name).resolve(), 'Overlay points outside the original model'

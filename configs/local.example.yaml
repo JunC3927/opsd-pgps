@@ -2,7 +2,8 @@ schema_version: 1
 paths:
   # These paths are on the destination server. Relative paths are relative to this YAML.
   model: /your/local-disk/models/Qwen3-VL-8B-Instruct
-  data: /your/local-disk/datasets/pgps-opsd-data-v1
+  # Official root containing Diagram_Visual/ and PGPS9K/train.json (or train.json).
+  data: /your/local-disk/datasets/PGPS9K
   output: /your/local-disk/experiments
 experiment:
   name: qwen3vl8b_hidden_guidance_h100_e1

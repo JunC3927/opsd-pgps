@@ -1,3 +1,21 @@
+# 直接读取官方PGPS9K（推荐）
+
+`paths.data`填写官方解压目录即可；支持`train.json`与`Diagram_Visual`同层，或`PGPS9K/train.json`与`Diagram_Visual`同属下载根目录。使用：
+
+```bash
+python scripts/run.py --config configs/local.yaml
+```
+
+程序只读取8021道训练题，学生使用原题和原图；教师额外使用原始结构/语义解析及所选约束。选项、答案、expression不写入训练样本。存在test.json时检查题号不交叉。按题号数值排序，为六卡分批补一条首题，保持8022行、batch12、669步。
+
+原图直接从Diagram_Visual读取，不复制、不离线缩放，不需要clight_images或旧Parquet。运行时仍由模型processor完成必要的图像处理。每张图的原始尺寸、哈希及输入来源记录在实验审计中；不强制与旧预处理图片的字节匹配。
+
+verl需要的`data/train.parquet`和`data/smoke.parquet`由程序在实验目录自动缓存，无需手动管理。默认保留缓存和审计，便于复查实际输入；原始下载目录不会被改写。`--prepare-only`可只准备和做CPU检查。
+
+以下是**可选的历史图片复现方式**，只有主动使用旧数据包时才适用；新服务器直接用官网下载数据可以忽略。
+
+---
+
 # PGPS 数据迁移
 
 GitHub 仓库存放代码、配置、依赖清单和文档。真实题目及训练图片单独打包传输，模型在新服务器下载；不需要迁移虚拟环境目录、旧权重或全部历史回答。
