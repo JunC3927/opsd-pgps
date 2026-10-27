@@ -28,7 +28,7 @@ framework/          固定提交＋历史补丁的完整训练框架（482个原
 src/geo_opsd/       可迁移的配置、数据、启动、导出与检查入口
 scripts/            手动执行的命令行入口
 configs/            六卡配方、教师约束、模型训练元数据、local配置示例
-environment/        Conda配置、版本锁、FA2校验清单、安装/验证脚本
+environment/        核心版本约束、历史完整清单、FA2校验、安装/验证脚本
 provenance/         源码校验、配置基准和版本证据
 tests/              CPU单元测试，不调用模型或API
 docs/               数据迁移、训练和环境说明
@@ -57,7 +57,9 @@ conda activate /your/local-disk/envs/geometry-opsd
 
 原FA2 wheel也可以独立传输，用 `--flash-attn-wheel /path/to/wheel.whl` 替代下载参数。默认沿用系统代理；需要直连时显式加 `--no-proxy`。安装中不会使用GPU、启动训练或修改其他环境。
 
-依赖固定为 torch 2.8.0、transformers 4.57.3、vLLM 0.11.0、FA2 2.8.3 等旧版本，**不要直接升级到最新版**。完整说明见 [环境说明](docs/ENVIRONMENT.md)。
+默认采用 `compatible` 模式：torch 2.8.0、transformers 4.57.3、vLLM 0.11.0、FA2 2.8.3 及相关训练/数值/图像组件保持旧版本；W&B、TensorBoard、tqdm、rich、click等辅助工具由pip选择兼容版本，不再逐个强求历史版本。Python要求3.12 ABI，默认不固定补丁号。安装时实时显示阶段与输出，同时保存日志。
+
+要恢复旧的全部依赖版本限制，可显式加 `--profile historical`。默认模式也会记录实际版本及历史差异；仍需通过H100真实训练验证，不能视为完整环境逐字节复现。完整说明见 [环境说明](docs/ENVIRONMENT.md)。
 
 ### 3. 放置模型和独立数据包
 

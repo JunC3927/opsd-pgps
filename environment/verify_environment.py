@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit exact versions/imports. GPU discovery requires the explicit --cuda flag."""
+"""Audit fixed core or historical freeze. GPU discovery requires the explicit --cuda flag."""
 import argparse
 import importlib
 import importlib.metadata as metadata
@@ -18,15 +18,57 @@ def normalize(name):
     return re.sub(r'[-_.]+', '-', name).lower()
 
 
+def core_versions(expected):
+    pins = {}
+    for line in (ROOT / 'constraints.core.txt').read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        name, version = line.strip().split('==')
+        name = normalize(name)
+        if expected['packages'].get(name) != version:
+            raise ValueError('Core constraint differs from historical baseline: ' + name)
+        pins[name] = version
+    return pins
+
+
+def audit_versions(actual, expected, profile):
+    required = expected['packages'] if profile == 'historical' else core_versions(expected)
+    differences = {key: {'expected': version, 'actual': actual.get(key)}
+                   for key, version in expected['packages'].items() if actual.get(key) != version}
+    mismatches = {key: {'expected': version, 'actual': actual.get(key)}
+                  for key, version in required.items() if actual.get(key) != version}
+    extras = {key: version for key, version in actual.items()
+              if key not in expected['packages'] and key not in expected['allowed_extra_packages']}
+    errors, warnings = [], []
+    if mismatches:
+        errors.append('Historical package pin mismatch' if profile == 'historical' else 'Training/inference core pin mismatch')
+    if profile == 'historical':
+        if extras:
+            errors.append('Unexpected extra packages in historical mode')
+        if actual.get('pip') != expected['bootstrap_pip']:
+            errors.append('pip bootstrap version differs from the recorded old overlay')
+    elif differences or extras or actual.get('pip') != expected['bootstrap_pip']:
+        warnings.append('Auxiliary versions/dependency set differ from the historical freeze; recorded for provenance')
+    return {'profile': profile, 'required_pin_count': len(required), 'package_mismatches': mismatches,
+            'baseline_differences': differences, 'extra_packages': extras,
+            'pip_version': actual.get('pip'), 'errors': errors, 'warnings': warnings}
+
+
+def python_matches(actual, requested):
+    return actual.split('.')[:2] == ['3', '12'] and (requested == '3.12' or actual == requested)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', type=Path)
-    parser.add_argument('--expected-python', default='3.12.14')
+    parser.add_argument('--profile', choices=('compatible', 'historical'), default='compatible')
+    parser.add_argument('--expected-python', default=None)
     parser.add_argument('--imports', action='store_true')
     parser.add_argument('--cuda', action='store_true', help='Explicitly inspect the visible CUDA devices')
     parser.add_argument('--expect-gpu-regex', default=None, help='For example H100; only with --cuda')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    args.expected_python = args.expected_python or ('3.12.14' if args.profile == 'historical' else '3.12')
     if args.expect_gpu_regex and not args.cuda:
         parser.error('--expect-gpu-regex requires --cuda')
     expected = json.loads((ROOT / 'expected_versions.json').read_text())
@@ -43,10 +85,10 @@ def main():
     # The historical torch wheel is tagged manylinux_2_28_x86_64.
     if libc_name != 'glibc' or tuple(int(x) for x in libc_version.split('.')[:2]) < (2, 28):
         errors.append('The historical torch wheel needs glibc >= 2.28')
-    if sys.version_info[:2] != (3, 12) or platform.python_version() != args.expected_python:
-        errors.append('Python differs from the explicitly requested CPython 3.12 patch version')
-    if args.expected_python != expected['baseline_python']:
-        warnings.append('Explicit Python patch override: this is not the exact historical Python version')
+    if not python_matches(platform.python_version(), args.expected_python):
+        errors.append('Python differs from the requested CPython 3.12 version / ABI')
+    if platform.python_version() != expected['baseline_python']:
+        warnings.append('Python patch differs from the historical version; CPython 3.12 ABI is still required')
     if args.prefix and args.prefix.resolve() != Path(sys.prefix).resolve():
         errors.append('Wrong Python interpreter prefix')
     distributions = {}
@@ -55,22 +97,14 @@ def main():
         if name:
             distributions.setdefault(normalize(name), []).append(distribution)
     actual = {key: values[0].version for key, values in distributions.items()}
-    report['package_mismatches'] = {key: {'expected': version, 'actual': actual.get(key)}
-                                    for key, version in expected['packages'].items()
-                                    if actual.get(key) != version}
-    report['extra_packages'] = {key: version for key, version in actual.items()
-                                if key not in expected['packages'] and
-                                key not in expected['allowed_extra_packages']}
+    audit = audit_versions(actual, expected, args.profile)
+    errors.extend(audit.pop('errors'))
+    warnings.extend(audit.pop('warnings'))
+    report.update(audit)
     report['duplicate_distributions'] = {key: [d.version for d in values]
                                          for key, values in distributions.items() if len(values) > 1}
-    if report['package_mismatches']:
-        errors.append('Historical package pin mismatch')
-    if report['extra_packages']:
-        errors.append('Unexpected extra packages; use a clean isolated prefix')
     if report['duplicate_distributions']:
         errors.append('Duplicate package metadata; environment may be ambiguous')
-    if actual.get('pip') != expected['bootstrap_pip']:
-        errors.append('pip bootstrap version differs from the recorded old overlay')
     if not args.cuda:
         os.environ['CUDA_VISIBLE_DEVICES'] = ''
     if args.imports or args.cuda:

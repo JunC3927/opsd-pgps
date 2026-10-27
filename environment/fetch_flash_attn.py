@@ -45,8 +45,18 @@ def main():
         else:
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({})) if args.no_proxy else urllib.request.build_opener()
             request = urllib.request.Request(spec['url'], headers={'User-Agent': 'geometry-opsd-environment/1'})
+            print('Downloading historical FlashAttention wheel (about 244 MiB)...', file=sys.stderr, flush=True)
             with opener.open(request, timeout=120) as response, partial.open('wb') as output:
-                shutil.copyfileobj(response, output, length=8 * 1024 * 1024)
+                downloaded = 0
+                next_report = 32 * 1024 * 1024
+                for block in iter(lambda: response.read(8 * 1024 * 1024), b''):
+                    output.write(block)
+                    downloaded += len(block)
+                    if downloaded >= next_report:
+                        print('FlashAttention: %.0f / %.0f MiB' %
+                              (downloaded / 1048576, spec['bytes'] / 1048576), file=sys.stderr, flush=True)
+                        next_report = downloaded + 32 * 1024 * 1024
+        print('Verifying FlashAttention wheel SHA256...', file=sys.stderr, flush=True)
         validate(partial, spec)
         partial.replace(destination)
     # Only the local wheel pathname is printed; no proxy/auth environment is logged.
