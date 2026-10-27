@@ -1,0 +1,7 @@
+# Bootstrap only. install.sh installs the exact runtime lock and verified FA2 wheel.
+name: geometry-opsd-legacy
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12.14
+  - pip

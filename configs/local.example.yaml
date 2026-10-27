@@ -1,0 +1,16 @@
+schema_version: 1
+paths:
+  # These paths are on the destination server. Relative paths are relative to this YAML.
+  model: /your/local-disk/models/Qwen3-VL-8B-Instruct
+  data: /your/local-disk/datasets/pgps-opsd-data-v1
+  output: /your/local-disk/experiments
+experiment:
+  name: qwen3vl8b_hidden_guidance_h100_e1
+  recipe: hidden_guidance # original is the unconstrained-teacher control
+  # Eight H100s available: use six for the original batch12/six-rank implementation.
+  gpus: [0, 1, 2, 3, 4, 5]
+wandb:
+  mode: offline # change to online after running `wandb login`
+  project: PGPS9K-Parsing-OPSD
+  entity: null
+  run_id: null

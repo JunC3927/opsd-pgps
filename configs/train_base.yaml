@@ -1,0 +1,153 @@
+data:
+  train_files:
+  - /historical/output
+  train_drop_last: false
+  val_files: []
+  train_batch_size: 12
+  max_prompt_length: 2048
+  max_response_length: 4096
+  filter_overlong_prompts: false
+  truncation: error
+  shuffle: true
+  seed: 42
+  trust_remote_code: true
+  return_multi_modal_inputs: true
+  image_key: images
+  image_patch_size: 16
+  custom_cls:
+    path: /historical/output
+    name: PGPSDataset
+  dataloader_num_workers: 4
+actor_rollout_ref:
+  model:
+    path: /historical/output
+    trust_remote_code: true
+    custom_chat_template: null
+    custom_chat_template_file: null
+    use_remove_padding: true
+    enable_gradient_checkpointing: true
+    use_fused_kernels: false
+  actor:
+    ppo_mini_batch_size: 12
+    ppo_micro_batch_size_per_gpu: 1
+    ppo_epochs: 1
+    use_dynamic_bsz: false
+    ppo_max_token_len_per_gpu: 12288
+    use_torch_compile: false
+    grad_clip: 1.0
+    use_kl_loss: false
+    calculate_entropy: false
+    entropy_coeff: 0.0
+    loss_agg_mode: token-mean
+    policy_loss:
+      loss_mode: vopd
+    optim:
+      lr: 1.0e-06
+      lr_warmup_steps: 0
+      lr_scheduler_type: constant
+      weight_decay: 0.01
+    fsdp_config:
+      mixed_precision:
+        param_dtype: bf16
+        reduce_dtype: bf16
+        buffer_dtype: bf16
+      param_offload: true
+      optimizer_offload: true
+      seed: 42
+    self_distillation:
+      full_logit_distillation: true
+      alpha: 0.0
+      distillation_topk: 32
+      distillation_add_tail: false
+      distillation_topk_source: teacher
+      distillation_log_prob_min_clamp: -10.0
+      distillation_loss_max_clamp: 10.0
+      distillation_fp32_logits: true
+      distillation_global_micro_token_mean: true
+      clight_optimizer_groups: true
+      teacher_always_on: true
+      teacher_model_source: legacy
+      teacher_regularization: ema
+      teacher_update_rate: 0.0
+      teacher_image_key: teacher_images
+      teacher_prompt_mode: null
+      fallback_to_policy_loss_on_missing_teacher: false
+      include_environment_feedback: false
+      max_reprompt_len: 4096
+      reprompt_truncation: error
+      is_clip: null
+  rollout:
+    name: vllm
+    mode: async
+    n: 1
+    temperature: 1.0
+    top_p: 1.0
+    top_k: -1
+    response_length: 4096
+    tensor_model_parallel_size: 1
+    gpu_memory_utilization: 0.5
+    enforce_eager: true
+    max_model_len: 6144
+    max_num_batched_tokens: 4096
+    max_num_seqs: 48
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_use_dynamic_bsz: false
+    calculate_log_probs: true
+    agent:
+      num_workers: 6
+    engine_kwargs:
+      vllm:
+        seed: 42
+        generation_config: vllm
+        mm_processor_kwargs:
+          min_pixels: 1024
+          max_pixels: 262144
+  ref:
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_use_dynamic_bsz: false
+    fsdp_config:
+      mixed_precision:
+        param_dtype: bf16
+        reduce_dtype: bf16
+        buffer_dtype: bf16
+      param_offload: true
+      model_dtype: bf16
+algorithm:
+  adv_estimator: grpo
+  norm_adv_by_std_in_grpo: false
+  use_kl_in_reward: false
+  rollout_correction:
+    rollout_is: null
+    rollout_is_threshold: 2.0
+reward_model:
+  enable: false
+  use_reward_loop: false
+custom_reward_function:
+  path: null
+critic:
+  enable: false
+trainer:
+  balance_batch: false
+  project_name: PGPS9K-Parsing-OPSD
+  group_name: Qwen3-VL-8B-v3bang-oldstack
+  logger:
+  - console
+  - tensorboard
+  - wandb
+  n_gpus_per_node: 6
+  nnodes: 1
+  total_epochs: 1
+  total_training_steps: null
+  save_freq: 100
+  max_actor_ckpt_to_keep: 8
+  test_freq: -1
+  val_before_train: false
+  resume_mode: disable
+  use_legacy_worker_impl: enable
+  experiment_name: pgps_8b_full8021_v3bang_oldstack_b12_n1_len4096_6gpu_20261027_e1
+  default_local_dir: /historical/output
+  rollout_data_dir: /historical/output
+ray_kwargs:
+  ray_init:
+    num_cpus: 32
+    include_dashboard: false

@@ -1,0 +1,17 @@
+{
+  "package": "flash-attn",
+  "installed_metadata_version": "2.8.3",
+  "filename": "flash_attn-2.8.3+cu12torch2.8cxx11abiTRUE-cp312-cp312-linux_x86_64.whl",
+  "bytes": 256040057,
+  "sha256": "f25da18657a87fc83dc1bfb8b7751b82246e9db355510226b674fd437c34b5fb",
+  "release_page": "https://github.com/Dao-AILab/flash-attention/releases/tag/v2.8.3",
+  "url": "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3%2Bcu12torch2.8cxx11abiTRUE-cp312-cp312-linux_x86_64.whl",
+  "abi": {
+    "python": "cp312",
+    "platform": "linux_x86_64",
+    "torch": "2.8",
+    "cuda_family": "12",
+    "cxx11_abi": true
+  },
+  "provenance": "Exact original training wheel, locally SHA256 verified. H100 execution not tested."
+}

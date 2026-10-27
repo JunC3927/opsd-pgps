@@ -1,0 +1,5 @@
+Use the annotations only as hidden guidance to understand and verify the geometric information in the diagram.
+
+Do not mention, quote, cite, or refer to the annotations or their existence! Do not reproduce their headings or raw format!
+
+Present a self-contained solution to the original problem, stating the relevant geometric facts directly in ordinary mathematical language.

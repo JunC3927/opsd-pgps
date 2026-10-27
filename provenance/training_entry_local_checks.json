@@ -1,0 +1,42 @@
+{
+  "local_stdlib_tests_passed": 7,
+  "syntax_passed": true,
+  "remote_execution": false,
+  "gpu_execution": false,
+  "api_calls": 0,
+  "framework_modified": false,
+  "automatic_schedule": false,
+  "files_sha256": {
+    "src/geo_opsd/runtime.py": "5a83279b0d7287c06ed022113f02f3cf723bc39842393498c05b2345390dfee0",
+    "src/geo_opsd/train.py": "19b026162d25ea820cfa83e58d4e803faa9a2bc79284c228d48dabdf5329d701",
+    "src/geo_opsd/preflight.py": "51048c4bf9acf8ac45cd7b7cccff7334725653e3bcab858c7f16c75ca40de25f",
+    "src/geo_opsd/launch.py": "1be2a894af510a42fe3198d2e9812a729db8d47d574a07250c15f99a521cc9bd",
+    "src/geo_opsd/export.py": "335f4a30aea08e25abd1eca439a5c303de2dff560c9bb3dc96d1a9b45006c312",
+    "src/geo_opsd/smoke.py": "18319ccca46541e82571d702e8a9858118b35bebbd4cb26cf6e0eb8383e3339a",
+    "scripts/preflight.py": "2f47ca40ff4b089b1aa495e8ca732f687561b4c5513a721290a76168fd809da0",
+    "scripts/launch.py": "3cb1fcb2fc7cc01db373ff180cd67ccf482d35446fb1cdedee542a822dc84cae",
+    "scripts/export.py": "5c465ef846e2359c2f13d3f509efaeb0933c72c84725b0f4ccb7bdee9c041183",
+    "scripts/smoke_check.py": "236b2f2c39a48011a4d1a7e86828f5d695a7233f5a2ca56ba3b8e5ef89258da2",
+    "tests/test_training_safety.py": "286f97b52fa80108bba5caa08b65e6e4f1fc56e2fb47bbd9180a555e9b339a1d",
+    "docs/TRAINING.md": "f29114e4bb9a7d82d20803e854426b10d53629cba436aa4e636c348ddcf91a15"
+  },
+  "pending": [
+    "destination pinned-environment CPU preflight",
+    "six-H100 real two-step training smoke",
+    "CPU checkpoint merge and real image generation",
+    "full 669-step run"
+  ],
+  "cli_help_passed": [
+    "preflight.py",
+    "launch.py",
+    "export.py",
+    "smoke_check.py"
+  ],
+  "recipe_guard_verification": {
+    "method": "sha256 of ast.get_source_segment for assert_recipe; independent of AST dump schema",
+    "sha256": "a199d578b14f85bf57f5c07eee8536819b110d1a5df18b93f3f385d957cc0e80",
+    "matched_original_audited_six_gpu_function": true,
+    "reason": "Python3.12 adds FunctionDef.type_params; ast.dump hashes differ across versions",
+    "training_implementation_changed": false
+  }
+}

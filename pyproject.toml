@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geometry-opsd"
+version = "0.1.0"
+description = "Portable PGPS OPSD experiment with the audited original six-GPU training implementation"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
