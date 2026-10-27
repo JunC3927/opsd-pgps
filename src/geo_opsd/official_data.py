@@ -101,8 +101,11 @@ def prepare_official(data_root, output_dir, suffix):
     try:
         pq.write_table(table, temporary / 'train.parquet')
         pq.write_table(table.slice(0, SMOKE_ROWS), temporary / 'smoke.parquet')
-        _require(pq.read_table(temporary / 'train.parquet').to_pylist() == rows, 'Training cache round trip failed')
-        _require(pq.read_table(temporary / 'smoke.parquet').equals(table.slice(0, SMOKE_ROWS), check_metadata=True),
+        stored = pq.read_table(temporary / 'train.parquet')
+        _require(stored.to_pylist() == rows, 'Training cache round trip failed')
+        # Parquet normalizes nested list field names; compare the two persisted
+        # tables, while the check above guarantees the original values survived.
+        _require(pq.read_table(temporary / 'smoke.parquet').equals(stored.slice(0, SMOKE_ROWS), check_metadata=True),
                  'Smoke cache must be the exact first 18 rows')
         report.update(smoke_rows=SMOKE_ROWS, train_parquet=str(output / 'train.parquet'),
                       smoke_parquet=str(output / 'smoke.parquet'), cache_generated_automatically=True,
