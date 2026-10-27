@@ -1,0 +1,93 @@
+{
+  "scope": "CPU migration validation only; not a legacy environment or H100 GPU test",
+  "gpu_work_started": false,
+  "training_started": false,
+  "time": 1793081756.7055268,
+  "tests": {
+    "run": 16,
+    "failures": 0,
+    "errors": 0,
+    "passed": true
+  },
+  "bundle": {
+    "rows": 8022,
+    "unique_questions": 8021,
+    "padding_id": "prob_0",
+    "padding_positions": [
+      8021
+    ],
+    "row_order_sha256": "f40eceda39796075368024dd9c397b88a07b08471c5e22cf91eac1cee53ab5c0",
+    "passed": true,
+    "format": "geo-opsd-pgps-original-v1",
+    "source_parquet_sha256": "9c69e065ec8432f5f66e324d69523c63237d61af9ea07e7d57a43b4e3627d577",
+    "image_count": 3776,
+    "image_bytes": 88566205,
+    "image_content_sha256": "5ef7a253285720150932d9a3b94248ad83f6b7f6e1dd01f244c1c10ea75c2a06",
+    "all_image_hashes_verified": true,
+    "manifest_sha256": "75b380b7848303ba28a46e11faeb1269500e6be4cfb887b77fc75ac596adb709",
+    "original_prompt_and_parsing_verified": true,
+    "test_ids_excluded": true
+  },
+  "prepared": {
+    "original": {
+      "rows": 8022,
+      "unique_questions": 8021,
+      "smoke_rows": 18,
+      "only_teacher_suffix_changed": true,
+      "passed": true
+    },
+    "hidden_guidance": {
+      "rows": 8022,
+      "unique_questions": 8021,
+      "smoke_rows": 18,
+      "only_teacher_suffix_changed": true,
+      "passed": true
+    }
+  },
+  "recipe_comparison": {
+    "original": {
+      "passed": true,
+      "allowed_changed_keys": [
+        "actor_rollout_ref.model.path",
+        "actor_rollout_ref.rollout.prometheus.served_model_name",
+        "critic.model.tokenizer_path",
+        "data.custom_cls.path",
+        "data.train_files",
+        "reward_model.model.input_tokenizer",
+        "trainer.default_local_dir",
+        "trainer.experiment_name",
+        "trainer.group_name",
+        "trainer.max_actor_ckpt_to_keep",
+        "trainer.project_name",
+        "trainer.rollout_data_dir",
+        "trainer.save_freq"
+      ]
+    },
+    "hidden_guidance": {
+      "passed": true,
+      "allowed_changed_keys": [
+        "actor_rollout_ref.model.path",
+        "actor_rollout_ref.rollout.prometheus.served_model_name",
+        "critic.model.tokenizer_path",
+        "data.custom_cls.path",
+        "data.train_files",
+        "reward_model.model.input_tokenizer",
+        "trainer.default_local_dir",
+        "trainer.experiment_name",
+        "trainer.group_name",
+        "trainer.max_actor_ckpt_to_keep",
+        "trainer.project_name",
+        "trainer.rollout_data_dir",
+        "trainer.save_freq"
+      ]
+    }
+  },
+  "passed": true,
+  "framework_files_checked": 482,
+  "tokenizer_reconstruction": {
+    "version": "0.22.2",
+    "source": "Official base tokenizer",
+    "all_three_outputs_match_archived_sha256": true
+  },
+  "h100_training_verified": false
+}

@@ -84,6 +84,8 @@ python scripts/preflight.py --config configs/local.yaml
 
 `configs/local.yaml` 被Git忽略。W&B默认 `offline`；若要在线记录，先在目标服务器执行 `wandb login`，再设置 `wandb.mode: online` 和自己的 `entity`。不要把密钥写入配置或仓库。
 
+模型准备会使用固定的 tokenizers 0.22.2 将官方下载文件恢复为旧训练保存的 tokenizer 格式，并逐字节核对旧 SHA；原始模型不改写。
+
 数据准备会核对原parquet、全部训练图片SHA、原题/原解析、学生输入、行序、补齐及测试集隔离。旧实验的训练图与 `Diagram_Visual` 不完全相同，不能自行替换。生成的parquet仅重写图片路径，并按配方追加教师约束。
 
 ### 5. 两步验证，然后正式训练

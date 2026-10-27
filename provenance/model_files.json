@@ -40,5 +40,12 @@
     "model-00004-of-00004.safetensors": {
       "size": 2716270024
     }
-  }
+  },
+  "official_source_sha256": {
+    "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+    "merges.txt": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+    "tokenizer.json": "a5d85b6dcc535e6b93115a9ef287e6132fdbf30270da6218194ba742261173c7",
+    "model.safetensors.index.json": "520b2e05079402e9468a8701d03d1154d14b2599593afb6effa7fb60c1bff070"
+  },
+  "tokenizer_serialization": "Official JSON/merges are normalized with tokenizers 0.22.2; resulting vocab, merges and tokenizer JSON must match archived training SHA256 exactly."
 }

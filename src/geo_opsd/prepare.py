@@ -20,6 +20,7 @@ def verify_framework(root):
 
 
 def prepare_model(source, target, root):
+    import tokenizers
     expected = read(root / "provenance/model_files.json")
     cfg = read(source / "config.json")
     assert cfg["model_type"] == "qwen3_vl"
@@ -28,13 +29,21 @@ def prepare_model(source, target, root):
     assert set(index["weight_map"].values()) == set(expected["weights"])
     for name, info in expected["weights"].items():
         assert (source / name).is_file() and (source / name).stat().st_size == info["size"], name
-    # Tokenizer bytes come from the original official model; the small training
-    # overlay restores processor/EOS behavior without modifying that model.
+    # save_pretrained serialized the old tokenizer differently from the official
+    # download. Accept only these two audited inputs, then recreate the exact old
+    # bytes with the pinned serializer. The original model remains read-only.
     immutable = ["vocab.json", "merges.txt", "tokenizer.json", "model.safetensors.index.json"]
     for name in immutable:
-        assert sha(source / name) == expected["files_sha256"][name], "Original model file mismatch: " + name
+        allowed = {expected["files_sha256"][name], expected["official_source_sha256"][name]}
+        assert sha(source / name) in allowed, "Original model file mismatch: " + name
+    assert tokenizers.__version__ == "0.22.2", "Use the locked tokenizers serializer"
     target.mkdir()
-    for name in immutable + list(expected["weights"]):
+    tokenizer = tokenizers.Tokenizer.from_file(str(source / "tokenizer.json"))
+    tokenizer.save(str(target / "tokenizer.json"), pretty=True)
+    tokenizer.model.save(str(target))
+    for name in ("tokenizer.json", "vocab.json", "merges.txt"):
+        assert sha(target / name) == expected["files_sha256"][name], "Historical tokenizer reconstruction mismatch: " + name
+    for name in ["model.safetensors.index.json"] + list(expected["weights"]):
         (target / name).symlink_to(os.path.relpath(source / name, target))
     for name in expected["overlay_files"]:
         p = root / "configs/model_overlay" / name
@@ -42,6 +51,8 @@ def prepare_model(source, target, root):
         shutil.copy2(p, target / name)
     return {"source_model": str(source), "model_type": cfg["model_type"],
             "immutable_metadata_sha256": {n: sha(source / n) for n in immutable},
+            "restored_tokenizer_sha256": {n: sha(target / n) for n in ("tokenizer.json", "vocab.json", "merges.txt")},
+            "tokenizers_version": tokenizers.__version__,
             "training_overlay_sha256": {n: sha(target / n) for n in expected["overlay_files"]},
             "weight_sizes": expected["weights"], "weight_bytes_hashed": False}
 
